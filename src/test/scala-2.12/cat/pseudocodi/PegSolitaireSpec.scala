@@ -13,7 +13,7 @@ class PegSolitaireSpec extends FunSpec with PegSolitaire {
     }
 
     it("should initialise a graph with an empty peg in the middle") {
-      val actual = graph.nodes.filter(n => n.empty)
+      val actual = graph.nodes.filter(n => n.empty())
       assert(actual.size === 1)
       assert(actual.head.x === 3)
       assert(actual.head.y === 3)

@@ -3,6 +3,7 @@ package cat.pseudocodi
 import scala.collection.immutable.IndexedSeq
 import scalafx.Includes._
 import scalafx.application.JFXApp
+import scalafx.beans.property.{BooleanProperty, ObjectProperty}
 import scalafx.geometry.Insets
 import scalafx.scene.Cursor._
 import scalafx.scene.Scene
@@ -50,13 +51,17 @@ object App extends JFXApp with PegSolitaire {
 
 trait PegSolitaire {
 
+  val selectedNode: ObjectProperty[Option[Node]] = ObjectProperty(Option.empty)
+
+  selectedNode.onChange { (_, oldValue, newValue) => println(s"Old: $oldValue, New: $newValue") }
+  
   class Peg(node: Node) extends Circle {
     centerX = 25
     centerY = 40
     radius = 20
-    fill <== when(hover) choose (if (node.empty) Grey else FloralWhite) otherwise (if (node.empty) Grey else DarkOrange)
-    cursor <== when(hover) choose (if (node.empty) Default else Hand) otherwise Default
-    onMouseClicked = (_: MouseEvent) => println("Clicked!!")
+    fill <== when(hover) choose (if (node.empty()) Grey else FloralWhite) otherwise (if (node.empty()) Grey else DarkOrange)
+    cursor <== when(hover) choose (if (node.empty()) Default else Hand) otherwise Default
+    onMouseClicked = (_: MouseEvent) => selectedNode() = Option(node)
   }
 
   object GridFactory {
@@ -94,7 +99,7 @@ trait PegSolitaire {
     def graph(): Graph = {
       val excluded = List(Rect(0, 0, 1), Rect(0, 5, 1), Rect(5, 0, 1), Rect(5, 5, 1))
       val nodes = for (x <- 0 until 7; y <- 0 until 7 if !excluded.exists(r => r.intersects(x, y)))
-        yield Node(s"($x,$y)", x, y, empty = x == 3 && y == 3)
+        yield Node(s"($x,$y)", x, y, empty = BooleanProperty(x == 3 && y == 3))
       val edges = nodes.flatMap(n => adjacentNodes(nodes, n).map(neighbor => Edge(n, neighbor)))
       Graph(nodes, removeDups(edges))
     }
@@ -107,7 +112,7 @@ trait PegSolitaire {
 
   case class Graph(nodes: Seq[Node], edges: Seq[Edge])
 
-  case class Node(name: String, x: Int, y: Int, empty: Boolean = false) {
+  case class Node(name: String, x: Int, y: Int, empty: BooleanProperty = BooleanProperty(false)) {
     def isNeighbor(other: Node): Boolean = {
       other.x == x + 1 && other.y == y ||
         other.x == x - 1 && other.y == y ||
