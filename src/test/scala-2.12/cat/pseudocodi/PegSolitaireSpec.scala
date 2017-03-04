@@ -4,8 +4,6 @@ import org.scalatest.FunSpec
 
 class PegSolitaireSpec extends FunSpec with PegSolitaire {
 
-  val graph: Graph = GraphFactory.graph()
-
   describe("Graph Factory") {
     it("should initialise a graph with 33 nodes and 52 edges") {
       assert(graph.nodes.length === 33)
