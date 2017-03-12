@@ -4,17 +4,10 @@ import org.scalatest.FunSpec
 
 class PegSolitaireSpec extends FunSpec with PegSolitaire {
 
-  describe("Graph Factory") {
+  describe("Graph") {
     it("should initialise a graph with 33 nodes and 52 edges") {
       assert(graph.nodes.length === 33)
       assert(graph.edges.length === 52)
-    }
-
-    it("should initialise a graph with an empty peg in the middle") {
-      val actual = graph.nodes.filter(n => n.empty())
-      assert(actual.size === 1)
-      assert(actual.head.x === 3)
-      assert(actual.head.y === 3)
     }
 
     it("should create every node connected to the right, left, up and down immediate neighbors") {
@@ -22,6 +15,17 @@ class PegSolitaireSpec extends FunSpec with PegSolitaire {
         val neighbors: Seq[Node] = graph.edges.filter(p => p.a == node || p.b == node).map(n => if (n.a != node) n.a else n.b)
         neighbors.foreach(neighbor => assert(node.isNeighbor(neighbor)))
       })
+    }
+
+    it("should empty the board leaving only one peg") {
+      val solution: Seq[Move] = BoardGraph.solution()
+      val pegs = graph.nodes.map(n => Peg(n))
+      solution.foreach(move => {
+        pegs.find(p => p.node == move.source).foreach(p => p.empty() = true)
+        pegs.find(p => p.node == move.removed).foreach(p => p.empty() = true)
+        pegs.find(p => p.node == move.target).foreach(p => p.empty() = false)
+      })
+      assert(pegs.count(p => p.empty()) === 1)
     }
   }
 }

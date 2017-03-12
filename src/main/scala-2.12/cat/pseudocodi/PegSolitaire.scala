@@ -1,16 +1,18 @@
 package cat.pseudocodi
 
-import cat.pseudocodi.Graph._
+import javafx.scene.text.TextBoundsType
+
+import cat.pseudocodi.BoardGraph._
 
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.beans.property._
-import scalafx.geometry.Insets
+import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Cursor._
 import scalafx.scene.Scene
 import scalafx.scene.control.Button
 import scalafx.scene.input.MouseEvent
-import scalafx.scene.layout.{GridPane, HBox, VBox}
+import scalafx.scene.layout._
 import scalafx.scene.paint.Color
 import scalafx.scene.paint.Color._
 import scalafx.scene.shape.{Circle, StrokeType}
@@ -19,24 +21,33 @@ import scalafx.scene.text.Text
 object App extends JFXApp with PegSolitaire {
   val restart = new Button {
     text = "Restart"
-    onMouseClicked = (_: MouseEvent) => resetGraph()
+    onMouseClicked = (_: MouseEvent) => resetBoard()
+    prefWidth = 80
+  }
+  val solve = new Button {
+    text = "Solve"
+    onMouseClicked = (_: MouseEvent) => println("todo")
+    prefWidth = 80
   }
   val scoreValue = new Text {
     text <== score
     style = "-fx-font-size: 24pt"
     fill = FloralWhite
   }
-  val leftPane = new VBox {
-    children = Seq(scoreValue, restart)
+  val buttonPane = new HBox {
+    padding = Insets(20, 0, 0, 0)
+    spacing = 10
+    alignment = Pos.CenterRight
+    children = Seq(solve, restart)
   }
-  val mainPaine = new HBox {
+  val mainPaine = new BorderPane {
     padding = Insets(10)
-    children = Seq(leftPane, grid())
+    top = scoreValue
+    center = grid()
+    bottom = buttonPane
   }
   stage = new JFXApp.PrimaryStage {
     title.value = "Peg Solitaire"
-    width = 600
-    height = 450
     scene = new Scene {
       fill = SaddleBrown
       content = mainPaine
@@ -46,66 +57,78 @@ object App extends JFXApp with PegSolitaire {
 
 trait PegSolitaire {
 
-  val selectedNode: ObjectProperty[Option[Node]] = ObjectProperty(Option.empty)
+  val selectedNode: ObjectProperty[Option[Peg]] = ObjectProperty(Option.empty)
 
-  val score: StringProperty = StringProperty("0")
+  val score: StringProperty = StringProperty("Score: 0")
 
-  lazy val graph = Graph()
+  lazy val graph = BoardGraph()
+  lazy val pegs: Seq[Peg] = graph.nodes.map((node: Node) => new Peg(node))
 
-  class Peg(node: Node) extends Circle {
+  case class Peg(node: Node) extends Circle {
+    val empty: BooleanProperty = BooleanProperty(node.x == 3 && node.y == 3)
+    val selected: BooleanProperty = BooleanProperty(false)
     centerX = 25
     centerY = 40
     radius = 20
-    fill <== when(hover) choose (if (node.empty()) Grey else WhiteSmoke) otherwise (if (node.empty()) Grey else DarkOrange)
-    fill <== when(node.empty) choose Grey otherwise DarkOrange
+    fill <== when(hover) choose (if (empty()) Grey else WhiteSmoke) otherwise (if (empty()) Grey else DarkOrange)
+    fill <== when(empty) choose Grey otherwise DarkOrange
     cursor <== when(hover) choose Hand otherwise Default
-    onMouseClicked = (_: MouseEvent) => pegClicked(node)
-    stroke <== when(node.selected) choose LightGoldrenrodYellow otherwise Color.Transparent
+    onMouseClicked = (_: MouseEvent) => pegClicked(this)
+    stroke <== when(selected) choose LightGoldrenrodYellow otherwise Color.Transparent
     strokeType = StrokeType.Centered
     strokeWidth = 2
   }
 
-  def pegClicked(target: Node): Unit = {
+  def pegClicked(nodeClicked: Peg): Unit = {
     if (selectedNode().isDefined) {
       val origin = selectedNode().get
-      if (target.empty()) {
-        val originNeighbors = adjacentNodes(graph.nodes, origin).filterNot(node => node.empty())
-        val targetNeighbors = adjacentNodes(graph.nodes, target).filterNot(node => node.empty())
+      if (nodeClicked.empty()) {
+        val exists: Node => Boolean = node => pegs.exists(peg => peg.node == node && peg.empty())
+        val originNeighbors = adjacent(graph.nodes, origin.node).filterNot(exists)
+        val targetNeighbors = adjacent(graph.nodes, nodeClicked.node).filterNot(exists)
         val intersect = originNeighbors.intersect(targetNeighbors).headOption
         if (intersect.isDefined) {
           origin.empty() = true
-          target.empty() = false
-          intersect.foreach(node => node.empty() = true)
-          score() = s"${score().toInt + 1}"
+          nodeClicked.empty() = false
+          intersect.flatMap(node => pegs.find(peg => peg.node == node)).foreach(peg => peg.empty() = true)
+          score() = s"Score: ${score().substring(score().lastIndexOf(" ") + 1, score().length).toInt + 1}"
         }
       }
       origin.selected() = false
       selectedNode() = Option.empty
     } else {
-      target.selected() = true
-      selectedNode() = Option(target)
+      nodeClicked.selected() = true
+      selectedNode() = Option(nodeClicked)
     }
   }
 
-  def resetGraph(): Unit = {
+  def resetBoard(): Unit = {
     selectedNode() = Option.empty
-    graph.nodes.foreach {
-      case node@Node(3, 3, _, _) =>
-        node.empty() = true
-        node.selected() = false
-      case node =>
-        node.empty() = false
-        node.selected() = false
-    }
+    score() = "Score: 0"
+    pegs.foreach(p => {
+      if (p.node.x == 3 && p.node.y == 3) {
+        p.empty() = true
+        p.selected() = false
+      } else {
+        p.empty() = false
+        p.selected() = false
+      }
+    })
   }
 
   def grid(): GridPane = {
     val grid = new GridPane {
       hgap = 10
       vgap = 10
-      padding = Insets(10)
+      padding = Insets(10, 0, 0, 0)
     }
-    graph.nodes.foreach(n => grid.add(new Peg(n), n.x, n.y))
+    pegs.foreach(peg => {
+      val text = new Text(s"${peg.node.x},${peg.node.y}")
+      text.setBoundsType(TextBoundsType.VISUAL)
+      val stack = new StackPane()
+      stack.children = Seq(peg, text)
+      grid.add(stack, peg.node.x, peg.node.y)
+    })
     grid
   }
 }
