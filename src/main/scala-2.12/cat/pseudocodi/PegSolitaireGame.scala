@@ -2,48 +2,65 @@ package cat.pseudocodi
 
 trait PegSolitaireGame {
 
-  type State = Int
-  type Board = Array[Array[State]]
+  val BoardSize = 7
 
-  val Empty: State = 0
-  val Filled: State = 1
-  val Outside: State = -1
+  abstract class Cell(x: Int)
 
-  val size = 7
+  object Empty extends Cell(0)
+
+  object Filled extends Cell(1)
+
+  object Outside extends Cell(-1)
+
+  case class Board(cells: Array[Array[Cell]]) {
+
+    def isComplete: Boolean = {
+      val numFilled = cells.foldLeft(0)((i: Int, cells: Array[Cell]) => {
+        i + cells.foldLeft(0)((j: Int, cell: Cell) => if (cell == Filled) 1 + j else j)
+      })
+      numFilled == 1
+    }
+  }
+
+
+  case class Point(x: Int, y: Int)
+
+  case class Move(from: Point, to: Point)
 
   def newBoard(): Board = {
-    val board = Array.ofDim[State](size, size)
-    for (i <- outOfRanges) board(i._1)(i._2) = Outside
-    board(3)(3) = Filled
+    val board = Board(Array.fill(BoardSize, BoardSize)(Empty))
+    for (i <- outOfRanges) board.cells(i.x)(i.y) = Outside
+    board.cells(3)(3) = Filled
     board
   }
 
-  lazy val outOfRanges: List[(Int, Int)] = {
+  lazy val outOfRanges: List[Point] = {
     val indexes = List(0, 1, 5, 6)
-    val tuples = for (i <- indexes; j <- indexes) yield (i, j)
-    tuples
+    for (i <- indexes; j <- indexes) yield Point(i, j)
   }
 
-  def solve(): List[Board] = {
-    def doSolve(frontier: List[List[Board]]): List[Board] = {
-      val path = frontier.head
-      if (path.nonEmpty) {
-        val lastBoard = path.head
-        for (i <- 0 to size; j <- 0 to size) {
+  def solve(): List[Move] = {
+    val queue: collection.mutable.Queue[(Board, List[Move])] = collection.mutable.Queue((newBoard(), List()))
+    while (queue.nonEmpty) {
+      val element = queue.dequeue()
+      if (element._1.isComplete) element._2
+      else {
 
-        }
       }
-      ???
     }
 
-    doSolve(List(List(newBoard())))
+    List()
   }
 
+  def states(board: Board): List[(Board, Move)] = {
+    List()
+  }
 
 }
 
 object PegSolitaireApp extends App with PegSolitaireGame {
   val board = newBoard()
+  println(board)
 }
 
 
