@@ -4,7 +4,7 @@ trait PegSolitaireGame {
 
   val BoardSize = 7
 
-  abstract class Cell(x: Int)
+  abstract case class Cell(x: Int)
 
   object Empty extends Cell(0)
 
@@ -13,24 +13,25 @@ trait PegSolitaireGame {
   object Outside extends Cell(-1)
 
   case class Board(cells: Array[Array[Cell]]) {
-
     def isComplete: Boolean = {
-      val numFilled = cells.foldLeft(0)((i: Int, cells: Array[Cell]) => {
-        i + cells.foldLeft(0)((j: Int, cell: Cell) => if (cell == Filled) 1 + j else j)
-      })
-      numFilled == 1
+      def pegCount(row: Int): Int = {
+        val count = (0 until BoardSize).count(col => cells(row)(col) == Filled)
+        count
+      }
+
+      val filledCount = (0 until BoardSize).foldLeft(0)((acc, row) => acc + pegCount(row))
+      filledCount == 1
     }
   }
-
 
   case class Point(x: Int, y: Int)
 
   case class Move(from: Point, to: Point)
 
   def newBoard(): Board = {
-    val board = Board(Array.fill(BoardSize, BoardSize)(Empty))
+    val board = Board(Array.fill(BoardSize, BoardSize)(Filled))
     for (i <- outOfRanges) board.cells(i.x)(i.y) = Outside
-    board.cells(3)(3) = Filled
+    board.cells(3)(3) = Empty
     board
   }
 
@@ -41,6 +42,7 @@ trait PegSolitaireGame {
 
   def solve(): List[Move] = {
     val queue: collection.mutable.Queue[(Board, List[Move])] = collection.mutable.Queue((newBoard(), List()))
+    val visited: List[Board] = List()
     while (queue.nonEmpty) {
       val element = queue.dequeue()
       if (element._1.isComplete) element._2
