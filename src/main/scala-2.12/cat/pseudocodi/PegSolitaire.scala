@@ -10,7 +10,7 @@ import scalafx.beans.property._
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Cursor._
 import scalafx.scene.Scene
-import scalafx.scene.control.Button
+import scalafx.scene.control.{Button, TextField}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout._
 import scalafx.scene.paint.Color
@@ -19,28 +19,26 @@ import scalafx.scene.shape.{Circle, StrokeType}
 import scalafx.scene.text.Text
 
 object App extends JFXApp with PegSolitaire {
-  val restart = new Button {
-    text = "Restart"
-    onMouseClicked = (_: MouseEvent) => resetBoard()
-    prefWidth = 80
-  }
-  val solve = new Button {
-    text = "Solve"
-    onMouseClicked = (_: MouseEvent) => println("todo")
-    prefWidth = 80
-  }
-  val scoreValue = new Text {
+  val scoreValue: Text = new Text {
     text <== score
     style = "-fx-font-size: 24pt"
     fill = FloralWhite
   }
-  val buttonPane = new HBox {
+  val restart: Button = new Button {
+    text = "Restart"
+    onMouseClicked = (_) => resetBoard()
+    prefWidth = 80
+  }
+  val gridId: TextField = new TextField {
+    onAction = (_) => println("todo")
+  }
+  val buttonPane: HBox = new HBox {
     padding = Insets(20, 0, 0, 0)
     spacing = 10
     alignment = Pos.CenterRight
-    children = Seq(solve, restart)
+    children = Seq(gridId, restart)
   }
-  val mainPaine = new BorderPane {
+  val mainPaine: BorderPane = new BorderPane {
     padding = Insets(10)
     top = scoreValue
     center = grid()
@@ -58,11 +56,9 @@ object App extends JFXApp with PegSolitaire {
 trait PegSolitaire {
 
   val selectedNode: ObjectProperty[Option[Peg]] = ObjectProperty(Option.empty)
-
   val score: StringProperty = StringProperty("Score: 0")
-
   lazy val graph = BoardGraph()
-  lazy val pegs: Seq[Peg] = graph.nodes.map((node: Node) => new Peg(node))
+  lazy val pegs: Seq[Peg] = graph.nodes.map((node: Node) => Peg(node))
 
   case class Peg(node: Node) extends Circle {
     val empty: BooleanProperty = BooleanProperty(node.x == 3 && node.y == 3)
