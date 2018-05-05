@@ -2,18 +2,18 @@ package cat.pseudocodi
 
 import scala.collection.mutable
 
-trait BoardGrid {
+object BoardGrid {
+
+  sealed abstract class Hole
+
+  object Excluded extends Hole
+
+  object Empty extends Hole
+
+  object Peg extends Hole
 
   type Board = Array[Array[Hole]]
   val length: Int = 7
-
-  def encode(board: Board): String = {
-    board.flatten.filterNot(e => e == Excluded).flatMap {
-      case Empty => "E"
-      case Peg => "P"
-      case _ => ""
-    }.mkString
-  }
 
   def solution(): Seq[Board] = {
     val board: Board = initialise()
@@ -48,22 +48,13 @@ trait BoardGrid {
   def initialise(): Board = {
     val board: Board = Array.fill[Hole](length, length)(Peg)
     board(3)(3) = Empty
-    board(0)(0) = Excluded
-    board(1)(0) = Excluded
-    board(5)(0) = Excluded
-    board(6)(0) = Excluded
-    board(0)(1) = Excluded
-    board(1)(1) = Excluded
-    board(5)(1) = Excluded
-    board(6)(1) = Excluded
-    board(0)(5) = Excluded
-    board(1)(5) = Excluded
-    board(5)(5) = Excluded
-    board(6)(5) = Excluded
-    board(0)(6) = Excluded
-    board(1)(6) = Excluded
-    board(5)(6) = Excluded
-    board(6)(6) = Excluded
+    val excluded = List(
+      (0, 0), (1, 0), (5, 0), (6, 0),
+      (0, 1), (1, 1), (5, 1), (6, 1),
+      (0, 5), (1, 5), (5, 5), (6, 5),
+      (0, 6), (1, 6), (5, 6), (6, 6)
+    )
+    excluded.foreach(tuple => board(tuple._1)(tuple._2) = Excluded)
     board
   }
 
@@ -116,16 +107,11 @@ trait BoardGrid {
     result
   }
 
-  case class Point(x: Int, y: Int)
-
-  case class PegMove(from: Point, to: Point)
-
-  sealed abstract class Hole
-
-  object Excluded extends Hole
-
-  object Empty extends Hole
-
-  object Peg extends Hole
-
+  def encode(board: Board): String = {
+    board.flatten.filterNot(e => e == Excluded).flatMap {
+      case Empty => "E"
+      case Peg => "P"
+      case _ => ""
+    }.mkString
+  }
 }
