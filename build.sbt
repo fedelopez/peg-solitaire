@@ -6,7 +6,7 @@ scalaVersion := "2.12.5"
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.1",
-  "org.scalafx" %% "scalafx" % "8.0.102-R11"
+  "org.scalafx" %% "scalafx" % "8.0.144-R12"
 )
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", "utf8", "-feature")

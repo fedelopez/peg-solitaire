@@ -27,11 +27,12 @@ object BoardGrid {
 
       val pegCount = head.flatten.count(hole => hole == Peg)
       if (pegCount == 1) {
+        println(s"Visited boards: ${visited.size}")
         return path
       }
       if (pegCount < totalPegs) {
         totalPegs = pegCount
-        println(pegCount)
+        println(s"Pegs remaining: $pegCount")
       }
 
       val boards = expand(head)
@@ -108,7 +109,7 @@ object BoardGrid {
   }
 
   def encode(board: Board): String = {
-    board.flatten.filterNot(e => e == Excluded).flatMap {
+    board.flatten.flatMap {
       case Empty => "E"
       case Peg => "P"
       case _ => ""

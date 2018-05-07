@@ -1,8 +1,9 @@
 package cat.pseudocodi
 
+import javafx.concurrent.Task
 import javafx.scene.text.TextBoundsType
 
-import cat.pseudocodi.BoardGrid.{Board, Excluded}
+import cat.pseudocodi.BoardGrid._
 
 import scalafx.Includes._
 import scalafx.application.JFXApp
@@ -11,7 +12,6 @@ import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Cursor._
 import scalafx.scene.Scene
 import scalafx.scene.control.Button
-import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout._
 import scalafx.scene.paint.Color
 import scalafx.scene.paint.Color._
@@ -57,12 +57,25 @@ object App extends JFXApp with PegSolitaire {
 
 trait PegSolitaire {
 
-  val selectedNode: ObjectProperty[Option[Peg]] = ObjectProperty(Option.empty)
+  val selectedNode: ObjectProperty[Option[PegCircle]] = ObjectProperty(Option.empty)
   val score: StringProperty = StringProperty("Score: 0")
-  lazy val graph: Board = BoardGrid.initialise()
-  lazy val pegs: Seq[Peg] = for (x <- graph.indices; y <- graph.indices if graph(x)(y) != Excluded) yield Peg(x, y)
+  val board: Board = BoardGrid.initialise()
+  val pegs: Seq[PegCircle] = for (x <- board.indices; y <- board.indices if board(x)(y) != Excluded) yield PegCircle(x, y)
+  val stateProperty = Worker.value
+  stateProperty.onChange { (_, _, newBoards) =>
+    var count = 0
+    val head = newBoards.head
+    for (x <- head.indices; y <- head.indices if head(x)(y) != Excluded) {
+      head(x)(y) match {
+        case Empty => pegs(count).empty() = true
+        case Peg => pegs(count).empty() = false
+        case _ =>
+      }
+      count = count + 1
+    }
+  }
 
-  case class Peg(x: Int, y: Int) extends Circle {
+  case class PegCircle(x: Int, y: Int) extends Circle {
     val empty: BooleanProperty = BooleanProperty(x == 3 && y == 3)
     val selected: BooleanProperty = BooleanProperty(false)
     centerX = 25
@@ -71,12 +84,12 @@ trait PegSolitaire {
     fill <== when(hover) choose (if (empty()) Grey else WhiteSmoke) otherwise (if (empty()) Grey else DarkOrange)
     fill <== when(empty) choose Grey otherwise DarkOrange
     cursor <== when(hover) choose Hand otherwise Default
-    onMouseClicked = (_: MouseEvent) => pegClicked(this)
+    onMouseClicked = _ => pegClicked(this)
     stroke <== when(selected) choose LightGoldrenrodYellow otherwise Color.Transparent
     strokeType = StrokeType.Centered
     strokeWidth = 2
 
-    def isNeighbor(other: Peg): Boolean = {
+    def isNeighbor(other: PegCircle): Boolean = {
       other.x == x + 1 && other.y == y ||
         other.x == x - 1 && other.y == y ||
         other.x == x && other.y == y + 1 ||
@@ -84,11 +97,18 @@ trait PegSolitaire {
     }
   }
 
-  def pegClicked(clicked: Peg): Unit = {
+  object Worker extends Task[Seq[Board]] {
+
+    protected def call(): Seq[Board] = {
+      BoardGrid.solution()
+    }
+  }
+
+  def pegClicked(clicked: PegCircle): Unit = {
     if (selectedNode().isDefined) {
-      val origin: Peg = selectedNode().get
+      val origin: PegCircle = selectedNode().get
       if (clicked.empty()) {
-        val exists: Peg => Boolean = node => pegs.exists(peg => peg == node && peg.empty())
+        val exists: PegCircle => Boolean = node => pegs.exists(peg => peg == node && peg.empty())
         val originNeighbors = neighbors(origin, pegs).filterNot(exists)
         val targetNeighbors = neighbors(clicked, pegs).filterNot(exists)
         val intersect = originNeighbors.intersect(targetNeighbors).headOption
@@ -106,7 +126,7 @@ trait PegSolitaire {
       selectedNode() = Option(clicked)
     }
 
-    def neighbors(peg: Peg, pegs: Seq[Peg]): Seq[Peg] = pegs.filter(p => peg.isNeighbor(p))
+    def neighbors(peg: PegCircle, pegs: Seq[PegCircle]): Seq[PegCircle] = pegs.filter(p => peg.isNeighbor(p))
   }
 
   def resetBoard(): Unit = {
@@ -124,7 +144,7 @@ trait PegSolitaire {
   }
 
   def solveBoard(): Unit = {
-
+    Worker.run()
   }
 
   def gridPane(): GridPane = {
